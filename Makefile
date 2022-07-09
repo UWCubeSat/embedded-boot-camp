@@ -23,29 +23,31 @@
 # Simple makefile: Compile all .c files into .o files, generating "dependency" .d files too (see
 # https://stackoverflow.com/q/2394609)
 
-KEY_SRCDIR 	:= ./key
+
+SRCDIR 		?= src
+SRCS 		:= $(wildcard $(SRCDIR)/*.cpp)
+
+OUTDIR 		:= out
+OBJS 		:= $(SRCS:$(SRCDIR)/%.cpp=$(OUTDIR)/%.o)
+
+KEY_DEPS	:= $(KEY_OBJS:%.o=%.d)
+DEPS 		:= $(OBJS:%.o=%.d)
+
+BINDIR 		:= bin
+
+BIN  		:= sht30.hex
+
+KEY_DIR		?= reference
+
+KEY_SRCDIR 	:= $(KEY_DIR)/$(SRCDIR)
 KEY_SRCS 	:= $(wildcard $(KEY_SRCDIR)/*.cpp)
 
-KEY_OUTDIR 	:= ./key/out
+KEY_OUTDIR 	:= $(KEY_DIR)/$(OUTDIR)
 KEY_OBJS 	:= $(KEY_SRCS:$(KEY_SRCDIR)/%.cpp=$(KEY_OUTDIR)/%.o)
 
 KEY_DEPS 	:= $(KEY_OBJS:%.o=%.d)
 
-KEY_BINDIR 	:= ./key/bin
-
-KEY_BIN		:= sht30_key
-
-SRCDIR 		:= ./src
-SRCS 		:= $(wildcard $(SRCDIR)/*.cpp)
-
-OUTDIR 		:= ./out
-OBJS 		:= $(SRCS:$(SRCDIR)/%.cpp=$(OUTDIR)/%.o)
-
-DEPS 		:= $(OBJS:%.o=%.d)
-
-BINDIR 		:= ./bin
-
-BIN  		:= sht30
+KEY_BINDIR 	:= $(KEY_DIR)/$(BINDIR)
 
 CC   		:= avr-gcc
 
@@ -55,39 +57,56 @@ MMCU 		:= -mmcu=$(MCU)
 
 CFLAGS 		:= $(CFLAGS) -Wall -g -mmcu=$(MCU)
 
+# This is a regular comment, that will not be displayed
 
+## ----------------------------------------------------------------------
+## This is a help comment. The purpose of this Makefile is to demonstrate
+## a simple help mechanism that uses comments defined alongside the rules
+## they describe without the need of additional help files or echoing of
+## descriptions. Help comments are displayed in the order defined within
+## the Makefile.
+## ----------------------------------------------------------------------
+
+# https://stackoverflow.com/questions/8889035/how-to-document-a-makefile/64996042#64996042
+.PHONY: help
+help:	## Show this help
+	@egrep -h '\s##\s' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m  %-30s\033[0m %s\n", $$1, $$2}'
 
 .PHONY: build
-build: build-key build-answer
+build: build-key build-solution	## Build answer key and solution
 
 .PHONY: build-key
-build-key: $(KEY_OBJS) bin
-	$(CC) $(CFLAGS) -o $(KEY_BINDIR)/$(KEY_BIN) $(KEY_OBJS)
+build-key: $(KEY_OBJS) $(KEY_BINDIR)		## Build answer key
+	$(CC) $(CFLAGS) -o $(KEY_BINDIR)/$(BIN) $(KEY_OBJS)
 
-.PHONY: build-answer
-build-answer: $(OBJS) bin
+.PHONY: build-solution
+build-solution: $(OBJS) $(BINDIR)		## Build solution
 	$(CC) $(CFLAGS) -o $(BINDIR)/$(BIN) $(OBJS)
 
-$(OUTDIR)/%.o: $(SRCDIR)/%.cpp out
-	$(CC) $(CFLAGS) -c $< -o $@
-
-$(KEY_OUTDIR)/%.o: $(KEY_SRCDIR)/%.cpp out
+$(OUTDIR)/%.o: $(SRCDIR)/%.cpp $(OUTDIR)
 	$(CC) $(CFLAGS) -MMD -c $< -o $@
 
+$(KEY_OUTDIR)/%.o: $(KEY_SRCDIR)/%.cpp $(KEY_OUTDIR)
+	$(CC) $(CFLAGS) -MMD -c $< -o $@
+
+$(BINDIR):
+	mkdir -p $@
+
+$(OUTDIR):
+	mkdir -p $@
+
+$(KEY_OUTDIR):
+	mkdir -p $@ 
+
+$(KEY_BINDIR):
+	mkdir -p $@ 
+
 -include $(DEPS)
+-include $(KEY_DEPS)
 
-out:
-	mkdir $@
-	mkdir key/$@
-
-bin:
-	mkdir $@
-	mkdir key/$@
-
-clean:
-	rm -f $(OBJS)
-	rm -f $(DEPS)
-	rm -rf $(BINDIR)/$(BIN)
-	rm -f $(KEY_OBJS)
-	rm -f $(KEY_DEPS)
-	rm -rf $(KEY_BINDIR)/$(KEY_BIN)
+.PHONY: clean
+clean:	## Clean up build artifacts
+	rm -rf $(OUTDIR)
+	rm -rf $(BINDIR)
+	rm -rf $(KEY_OUTDIR)
+	rm -rf $(KEY_BINDIR)
