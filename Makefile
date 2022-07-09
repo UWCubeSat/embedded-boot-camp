@@ -27,19 +27,19 @@ KEY_SRCDIR 	:= ./key
 KEY_SRCS 	:= $(wildcard $(KEY_SRCDIR)/*.cpp)
 
 KEY_OUTDIR 	:= ./key/out
-KEY_OBJS 	:= $(KEY_SRCS:$(KEY_SRCDIR)/%.c=$(KEY_OUTDIR)/%.o)
+KEY_OBJS 	:= $(KEY_SRCS:$(KEY_SRCDIR)/%.cpp=$(KEY_OUTDIR)/%.o)
 
 KEY_DEPS 	:= $(KEY_OBJS:%.o=%.d)
 
 KEY_BINDIR 	:= ./key/bin
 
-KEY_BIN     := sht30_key
+KEY_BIN		:= sht30_key
 
 SRCDIR 		:= ./src
-SRCS 		:= $(wildcard $(SRCDIR)/*.c)
+SRCS 		:= $(wildcard $(SRCDIR)/*.cpp)
 
 OUTDIR 		:= ./out
-OBJS 		:= $(SRCS:$(SRCDIR)/%.c=$(OUTDIR)/%.o)
+OBJS 		:= $(SRCS:$(SRCDIR)/%.cpp=$(OUTDIR)/%.o)
 
 DEPS 		:= $(OBJS:%.o=%.d)
 
@@ -51,6 +51,8 @@ CC   		:= avr-gcc
 
 MCU 		:= atmega328p
 
+MMCU 		:= -mmcu=$(MCU)
+
 CFLAGS 		:= $(CFLAGS) -Wall -g -mmcu=$(MCU)
 
 
@@ -59,31 +61,33 @@ CFLAGS 		:= $(CFLAGS) -Wall -g -mmcu=$(MCU)
 build: build-key build-answer
 
 .PHONY: build-key
-build-key: $(KEY_OBJS)
+build-key: $(KEY_OBJS) bin
 	$(CC) $(CFLAGS) -o $(KEY_BINDIR)/$(KEY_BIN) $(KEY_OBJS)
 
 .PHONY: build-answer
-build-answer:
+build-answer: $(OBJS) bin
 	$(CC) $(CFLAGS) -o $(BINDIR)/$(BIN) $(OBJS)
 
-$(OUTDIR)/%.o: $(SRCDIR)/%.c
-	$(CC) $(CFLAGS) -MMD -c $< -o $@
+$(OUTDIR)/%.o: $(SRCDIR)/%.cpp out
+	$(CC) $(CFLAGS) -c $< -o $@
 
-$(KEY_OUTDIR)/%.o: $(KEY_SRCDIR)/%.c
+$(KEY_OUTDIR)/%.o: $(KEY_SRCDIR)/%.cpp out
 	$(CC) $(CFLAGS) -MMD -c $< -o $@
 
 -include $(DEPS)
 
-.PHONY: help
-help:
-	@echo "Making all targets for $(MCU)"
+out:
+	mkdir $@
+	mkdir key/$@
+
+bin:
+	mkdir $@
+	mkdir key/$@
 
 clean:
 	rm -f $(OBJS)
 	rm -f $(DEPS)
-	rm -f $(BINDIR)/$(BIN)
+	rm -rf $(BINDIR)/$(BIN)
 	rm -f $(KEY_OBJS)
 	rm -f $(KEY_DEPS)
-	rm -f $(KEY_BINDIR)/$(KEY_BIN)
-
-.PHONY: all clean
+	rm -rf $(KEY_BINDIR)/$(KEY_BIN)
