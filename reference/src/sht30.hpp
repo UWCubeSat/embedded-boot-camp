@@ -25,7 +25,9 @@
 #ifndef _SHT30_H
 #define _SHT30_H
 
-#include <stdint.h>
+extern "C" {
+    #include <stdint.h>
+}
 
 namespace EmbeddedBootCamp {
     class SHT30 {
@@ -33,14 +35,14 @@ namespace EmbeddedBootCamp {
             struct Status {
                 uint16_t write_checksum : 1;
                 uint16_t command : 1;
-                uint16_t __res0__ : 2;
+                uint16_t __reserved0__ : 2;
                 uint16_t sys_reset : 1;
-                uint16_t __res1__ : 5;
+                uint16_t __reserved1__ : 5;
                 uint16_t t_tracking_alert : 1;
                 uint16_t rh_tracking_alert : 1;
-                uint16_t __res2__ : 1;
+                uint16_t __reserved2__ : 1;
                 uint16_t heater : 1;
-                uint16_t __res3__ : 1;
+                uint16_t __reserved3__ : 1;
                 uint16_t alert_pending : 1;
             };
 
@@ -82,19 +84,18 @@ namespace EmbeddedBootCamp {
             };
 
             enum class Result {
-                NONE,
+                OK,
                 ERR_CONFIG,
                 ERR_NO_DATA,
                 ERR_CRC,
                 ERR_NACK,
                 ERR_PARAM,
+                ERR_START,
+                ERR_BUS,
             };
             
             // Construct sensor object instance
-            SHT30();
-
-            // Initialize peripheral resources (I2C, GPIO, etc.)
-            void Begin();
+            SHT30(volatile uint16_t *, uint8_t);
 
             // Set units for temperature
             inline void SetTemperatureUnits(TemperatureUnits units) {
@@ -117,33 +118,42 @@ namespace EmbeddedBootCamp {
             }
 
             // Read and return a processed set of data
-            Data Read();
+            Result Read(Data *out);
 
             // Read and return an unprocessed set of data 
-            RawData ReadRaw();
+            Result ReadRaw(RawData *out);
 
             // Read the device status register
-            Status ReadStatus();
+            Result ReadStatus(Status *out);
 
             // Clear the status register
             Result ClearStatus();
 
             // Soft reset the device
-            Result SoftReset();
+            void SoftReset();
 
             // Get the result of the last command
             inline Result GetLastResult() const { return m_cached_result; }
 
         private:
-            Result GenericWrite(uint8_t *buf, uint16_t n_bytes);
+            Result GenericWrite(
+                uint8_t *buf,
+                uint16_t n_bytes,
+                bool autoStop
+            );
 
-            Result GenericRead(uint8_t *buf, uint16_t n_bytes);
+            Result GenericRead(
+                uint8_t *buf,
+                uint16_t n_bytes,
+                bool autoStop
+            );
 
             Result GenericWriteRead(
                 uint8_t *wr_buf,
                 uint16_t wr_bytes,
                 uint8_t *r_buf,
-                uint16_t r_bytes
+                uint16_t r_bytes,
+                bool autoStop
             );
 
             bool CheckCRC(uint8_t crc);
@@ -157,6 +167,10 @@ namespace EmbeddedBootCamp {
             MeasurementFrequency m_measurement_frequency;
 
             Resolution m_resolution;
+
+            volatile uint16_t * m_int_pin_port;
+            uint8_t m_int_pin_mask;
+            bool m_initialized;
     };  // class SHT30
 }   // namespace EmbeddedBootCamp
 

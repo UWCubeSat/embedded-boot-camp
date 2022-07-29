@@ -80,7 +80,7 @@ build-key: $(KEY_OBJS) $(KEY_BINDIR)		## Build answer key
 	$(CC) $(CFLAGS) -o $(KEY_BINDIR)/$(BIN) $(KEY_OBJS)
 
 .PHONY: build-solution
-build-solution: $(OBJS) $(BINDIR)		## Build solution
+build-solution: $(OBJS) $(BINDIR)		## Build your solution
 	$(CC) $(CFLAGS) -o $(BINDIR)/$(BIN) $(OBJS)
 
 $(OUTDIR)/%.o: $(SRCDIR)/%.cpp $(OUTDIR)
